@@ -8,7 +8,8 @@ from moviepy.editor import VideoFileClip
 import os
 from moviepy.video.fx import all as vfx
 from dotenv import load_dotenv
-
+import random
+import string
 
 load_dotenv(verbose=True)
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -27,28 +28,31 @@ async def hello(interaction: discord.Interaction, url: str):  # 출력
     try:
         # 비디오 다운로드
         video_response = requests.get(url)
-        with open("temp_video.mp4", 'wb') as f:
+        
+        #랜덤 id 부여
+        temp_video_id = "".join([random.choice(string.ascii_letters) for _ in range(10)])
+        temp_video = temp_video_id + ".mp4"
+         
+        with open(temp_video, 'wb') as f:
             f.write(video_response.content)
             f.close()
 
-        
-        
         # 비디오를 GIF로 변환
-        clip = VideoFileClip("temp_video.mp4")
+        clip = VideoFileClip(temp_video)
         
         if clip.fps > 10:
             clip = clip.fx(vfx.speedx, factor=2)  # 2배 속도 증가    
             
         if clip.duration < 1:
             clip = vfx.speedx(clip, factor=0.5) # 영상 늘리고
-            clip = clip.fx(vfx.speedx, factor=1.4) # 빠르게 만들기
+            clip = clip.fx(vfx.speedx, factor=1.45) # 빠르게 만들기
             
         clip = clip.subclip(0, min(7, clip.duration))  # 최대 5초로 자르기
-        clip.write_gif("output.gif")
+        clip.write_gif(temp_video_id+".gif")
         
         # 변환된 GIF를 전송
-        with open("output.gif", "rb") as f:
-            await interaction.followup.send(file=discord.File(f, "output.gif"), ephemeral=True)
+        with open(temp_video_id+".gif", "rb") as f:
+            await interaction.followup.send(file=discord.File(f, temp_video_id+".gif"), ephemeral=True)
             f.close()
 
     except Exception as e:
@@ -56,26 +60,30 @@ async def hello(interaction: discord.Interaction, url: str):  # 출력
     
     clip.close()
     # 비동기적으로 파일 정리
-    asyncio.create_task(clean_up_files())
+    asyncio.create_task(clean_up_files(temp_video_id))
 
-async def clean_up_files():
+async def clean_up_files(temp_video_id):
     # 정리해야 할 파일 목록
-    files_to_clean = ["./temp_video.mp4", "./output.gif"]
-
-    for file_path in files_to_clean:
-        if os.path.exists(file_path):
-            while True:
+    base_path = "./"
+    temp_video_path = os.path.join(base_path, temp_video_id)
+    
+    files_to_clean = [temp_video_path + ".mp4", temp_video_path +".gif"]
+    max_retries = 10  # 최대 재시도 횟수
+    
+    for file_name in files_to_clean:
+        if os.path.exists(file_name):
+            for attempt in range(max_retries):
                 try:
-                    os.remove(file_path)
-                    print(f"{file_path} 삭제 완료.")
+                    os.remove(file_name)
+                    print(f"{file_name} 삭제 완료.")
                     break
                 except PermissionError:
-                    print(f"{file_path} 삭제 대기 중...")
-                    await asyncio.sleep(0.5)  # 0.5초 후 재시도
+                    print(f"{file_name} 삭제 대기 중... 재시도 {attempt + 1}/{max_retries}")
+                    await asyncio.sleep(0.5)
+            else:
+                print(f"{file_name} 삭제 실패: 다른 프로세스에서 사용 중이거나 권한 문제 발생.")
 
-        
     
-    # await interaction.response.send_message(f'{interaction.user.mention} : {text1} : {text2}', ephemeral=True)
     
 @bot.tree.command(name="파일변환", description="MP4 파일을 업로드하여 GIF로 변환하여 보내기")
 @discord.app_commands.describe(file="MP4 파일")
@@ -83,40 +91,35 @@ async def hello(interaction: discord.Interaction, file: discord.Attachment):
     
         
     try:
-        file_path = "temp_video.mp4"
-        await file.save(file_path)
+        temp_video_id = "".join([random.choice(string.ascii_letters) for _ in range(10)])
+        temp_video = temp_video_id + ".mp4"
+                
+        await file.save(temp_video)
         
         if clip.fps > 10:
             clip = clip.fx(vfx.speedx, factor=2)  # 2배 속도 증가    
             
         if clip.duration < 1:
             clip = vfx.speedx(clip, factor=0.5) # 영상 늘리고
-            clip = clip.fx(vfx.speedx, factor=1.4) # 빠르게 만들기
+            clip = clip.fx(vfx.speedx, factor=1.45) # 빠르게 만들기
 
         # 비디오를 GIF로 변환
-        clip = VideoFileClip("temp_video.mp4")
+        clip = VideoFileClip(temp_video_id+".mp4")
         clip = clip.subclip(0, min(5, clip.duration))  # 최대 5초로 자르기
-        clip.write_gif("output.gif")
+        clip.write_gif(temp_video_id+".gif")
         
 
         # 디스코드에 GIF 업로드
-        with open("output.gif", "rb") as f:
-            message = await interaction.response.send_message(file=discord.File(f, "output.gif"),ephemeral=True)
+        with open(temp_video_id+".gif", "rb") as f:
+            message = await interaction.response.send_message(file=discord.File(f, temp_video_id+".gif"),ephemeral=True)
             f.close()
         
         
     except Exception as e:
         await interaction.response.send_message(f"오류 발생: {e}", ephemeral=True)
 
-    finally:
-        time.sleep(10)
-        # 파일 정리
-        # 기존 파일 삭제
-        if os.path.exists("./temp_video.mp4"):
-            os.remove("./temp_video.mp4")
-        if os.path.exists("./output.gif"):
-            os.remove("./output.gif")
-    
+    asyncio.create_task(clean_up_files(temp_video_id))
+        
 
 @bot.event
 async def on_ready():
