@@ -39,11 +39,13 @@ async def hello(interaction: discord.Interaction, url: str):  # 출력
         if clip.fps > 10:
             clip = clip.fx(vfx.speedx, factor=2)  # 2배 속도 증가    
             
+        if clip.duration < 1:
+            clip = vfx.speedx(clip, factor=0.5) # 영상 늘리고
+            clip = clip.fx(vfx.speedx, factor=1.45) # 빠르게 만들기
+            
         clip = clip.subclip(0, min(7, clip.duration))  # 최대 5초로 자르기
         clip.write_gif("output.gif")
         
-        
-
         # 변환된 GIF를 전송
         with open("output.gif", "rb") as f:
             await interaction.followup.send(file=discord.File(f, "output.gif"), ephemeral=True)
@@ -83,6 +85,13 @@ async def hello(interaction: discord.Interaction, file: discord.Attachment):
     try:
         file_path = "temp_video.mp4"
         await file.save(file_path)
+        
+        if clip.fps > 10:
+            clip = clip.fx(vfx.speedx, factor=2)  # 2배 속도 증가    
+            
+        if clip.duration < 1:
+            clip = vfx.speedx(clip, factor=0.5) # 영상 늘리고
+            clip = clip.fx(vfx.speedx, factor=1.45) # 빠르게 만들기
 
         # 비디오를 GIF로 변환
         clip = VideoFileClip("temp_video.mp4")
