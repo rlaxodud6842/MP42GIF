@@ -1,5 +1,4 @@
 import asyncio
-import time
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -14,6 +13,9 @@ import string
 load_dotenv(verbose=True)
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
+
+min_fps_for_speed_up = 10
+min_duration_for_extend_file = 1
 
 intents = discord.Intents.default()
 
@@ -40,10 +42,10 @@ async def hello(interaction: discord.Interaction, url: str):  # 출력
         # 비디오를 GIF로 변환
         clip = VideoFileClip(temp_video)
         
-        if clip.fps > 10:
+        if clip.fps > min_fps_for_speed_up:
             clip = clip.fx(vfx.speedx, factor=2)  # 2배 속도 증가    
             
-        if clip.duration < 1:
+        if clip.duration < min_duration_for_extend_file:
             clip = vfx.speedx(clip, factor=0.5) # 영상 늘리고
             clip = clip.fx(vfx.speedx, factor=1.45) # 빠르게 만들기
             
@@ -96,10 +98,10 @@ async def hello(interaction: discord.Interaction, file: discord.Attachment):
                 
         await file.save(temp_video)
         
-        if clip.fps > 10:
+        if clip.fps > min_fps_for_speed_up:
             clip = clip.fx(vfx.speedx, factor=2)  # 2배 속도 증가    
             
-        if clip.duration < 1:
+        if clip.duration < min_duration_for_extend_file:
             clip = vfx.speedx(clip, factor=0.5) # 영상 늘리고
             clip = clip.fx(vfx.speedx, factor=1.45) # 빠르게 만들기
 
