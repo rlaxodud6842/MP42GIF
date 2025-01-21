@@ -42,7 +42,7 @@ async def hello(interaction: discord.Interaction, url: str):  # 출력
         #용량이 10MB 이상이면 용량제한 메세지 전송
         temp_video_size = os.path.getsize(os.path.join("./",temp_video))
         if temp_video_size >= max_video_size:
-            await interaction.followup.send(file=discord.File(f, temp_video_id+".gif"), ephemeral=True)
+            await interaction.followup.send(file=discord.File(f, temp_video_id+".gif"))
             asyncio.create_task(clean_up_files(temp_video_id))
         else:
             # 비디오를 GIF로 변환
@@ -60,7 +60,7 @@ async def hello(interaction: discord.Interaction, url: str):  # 출력
             
             # 변환된 GIF를 전송
             with open(temp_video_id+".gif", "rb") as f:
-                await interaction.followup.send(file=discord.File(f, temp_video_id+".gif"), ephemeral=True)
+                await interaction.followup.send(file=discord.File(f, temp_video_id+".gif"))
                 f.close()
     except Exception as e:
         await interaction.response.send_message(f"오류 발생: {e}", ephemeral=True)
